@@ -10,7 +10,7 @@ class AIService:
     """Service for AI-powered interaction analysis"""
     
     def __init__(self):
-        self.client = openai(api_key=os.getenv('OPENAI_API_KEY'))
+        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     
     def summarize_interactions(self, interactions: List[Interaction]) -> InteractionSummary:
         """Generate AI summary of interactions"""
