@@ -1,0 +1,149 @@
+<template>
+    <!-- Summary Button -->
+    <div class="slds-m-bottom_medium">
+        <lightning-button 
+            variant="brand" 
+            label="Summarize Interactions" 
+            title="Generate AI-powered summary of all interactions"
+            icon-name="utility:einstein"
+            onclick={handleSummarize}
+            class="slds-m-right_small">
+        </lightning-button>
+        
+        <!-- Test Button (for development) -->
+        <lightning-button 
+            variant="neutral" 
+            label="Test Summary" 
+            title="Test AI summary with sample data"
+            icon-name="utility:test"
+            onclick={handleTestSummarize}>
+        </lightning-button>
+    </div>
+
+    <!-- Modal -->
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <!-- Modal Header -->
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">
+                        <lightning-icon icon-name="utility:einstein" size="small" class="slds-m-right_small"></lightning-icon>
+                        {modalTitle}
+                    </h2>
+                </header>
+
+                <!-- Modal Body -->
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <!-- Loading State -->
+                    <template if:true={isLoading}>
+                        <div class="slds-align_absolute-center" style="height: 200px;">
+                            <lightning-spinner alternative-text="Generating AI summary..." size="medium"></lightning-spinner>
+                            <p class="slds-text-body_regular slds-m-top_medium">
+                                Analyzing interactions and generating summary...
+                            </p>
+                        </div>
+                    </template>
+
+                    <!-- Error State -->
+                    <template if:true={error}>
+                        <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error" role="alert">
+                            <span class="slds-assistive-text">Error</span>
+                            <lightning-icon icon-name="utility:error" size="small" class="slds-m-right_small"></lightning-icon>
+                            <h2>{error}</h2>
+                        </div>
+                    </template>
+
+                    <!-- Summary Content -->
+                    <template if:true={hasSummary}>
+                        <div class="slds-grid slds-wrap slds-gutters">
+                            <!-- Summary Stats -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
+                                <div class="slds-grid slds-wrap slds-gutters">
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="slds-text-align_center slds-box slds-theme_shade">
+                                            <div class="slds-text-heading_small">{summaryData.total_interactions}</div>
+                                            <div class="slds-text-body_small">Total Interactions</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="slds-text-align_center slds-box slds-theme_shade">
+                                            <div class="slds-text-heading_small">{summaryData.date_range}</div>
+                                            <div class="slds-text-body_small">Date Range</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="slds-text-align_center slds-box slds-theme_shade">
+                                            <lightning-badge label={sentimentLabel} class={sentimentClass}></lightning-badge>
+                                            <div class="slds-text-body_small slds-m-top_x-small">
+                                                Score: {summaryData.sentiment_score}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-4">
+                                        <div class="slds-text-align_center slds-box slds-theme_shade">
+                                            <lightning-badge label={summaryData.urgency_level} variant={urgencyVariant}></lightning-badge>
+                                            <div class="slds-text-body_small slds-m-top_x-small">Urgency Level</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Main Summary -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
+                                <div class="slds-box">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_small">
+                                        <lightning-icon icon-name="utility:summary" size="small" class="slds-m-right_small"></lightning-icon>
+                                        Interaction Summary
+                                    </h3>
+                                    <p class="slds-text-body_regular">{summaryData.summary}</p>
+                                </div>
+                            </div>
+
+                            <!-- Key Topics -->
+                            <div class="slds-col slds-size_1-of-2 slds-m-bottom_medium">
+                                <div class="slds-box">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_small">
+                                        <lightning-icon icon-name="utility:topic" size="small" class="slds-m-right_small"></lightning-icon>
+                                        Key Topics
+                                    </h3>
+                                    <template for:each={summaryData.key_topics} for:item="topic">
+                                        <lightning-badge 
+                                            key={topic} 
+                                            label={topic} 
+                                            class="slds-m-right_x-small slds-m-bottom_x-small">
+                                        </lightning-badge>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Next Steps -->
+                            <div class="slds-col slds-size_1-of-2 slds-m-bottom_medium">
+                                <div class="slds-box">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_small">
+                                        <lightning-icon icon-name="utility:forward" size="small" class="slds-m-right_small"></lightning-icon>
+                                        Recommended Next Steps
+                                    </h3>
+                                    <ul class="slds-list_dotted">
+                                        <template for:each={summaryData.next_steps} for:item="step">
+                                            <li key={step} class="slds-item slds-text-body_regular">{step}</li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Modal Footer -->
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCloseModal}>Close</button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

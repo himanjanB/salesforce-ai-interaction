@@ -1,0 +1,74 @@
+/* Custom styles for interaction summary component */
+
+.positive {
+    --slds-c-badge-color-background: #4bca81;
+    --slds-c-badge-text-color: white;
+}
+
+.negative {
+    --slds-c-badge-color-background: #ea001e;
+    --slds-c-badge-text-color: white;
+}
+
+.neutral {
+    --slds-c-badge-color-background: #747474;
+    --slds-c-badge-text-color: white;
+}
+
+.slds-modal__container {
+    max-width: 800px;
+    width: 90%;
+}
+
+.slds-modal__content {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.slds-box {
+    background-color: var(--slds-g-color-neutral-base-95);
+    border: 1px solid var(--slds-g-color-border-base-4);
+    border-radius: 0.25rem;
+    padding: 1rem;
+}
+
+.slds-theme_shade {
+    background-color: var(--slds-g-color-neutral-base-90);
+}
+
+.slds-list_dotted {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+}
+
+.slds-list_dotted .slds-item {
+    margin-bottom: 0.5rem;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slds-box {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .slds-modal__container {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .slds-grid .slds-col {
+        width: 100%;
+    }
+}
