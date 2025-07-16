@@ -1,20 +1,21 @@
 import os
-import json
 from typing import List
 from datetime import datetime
 from textblob import TextBlob
-import openai
+from openai import OpenAI
 
 from models.interaction import Interaction, InteractionSummary
 
-# Configure OpenAI API key globally
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
 class AIService:
-    """Service for AI-powered interaction analysis"""
-    
+    """Service for AI-powered interaction analysis using OpenAI v1.x"""
+
+    def __init__(self):
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable not set.")
+        self.client = OpenAI(api_key=api_key)
+
     def summarize_interactions(self, interactions: List[Interaction]) -> InteractionSummary:
-        """Generate AI summary of interactions"""
         try:
             interaction_text = self._prepare_interaction_text(interactions)
             summary = self._generate_summary(interaction_text)
@@ -23,7 +24,7 @@ class AIService:
             next_steps = self._predict_next_steps(interaction_text, summary)
             urgency_level = self._determine_urgency(interactions, sentiment_score)
             date_range = self._create_date_range(interactions)
-            
+
             return InteractionSummary(
                 account_id=interactions[0].account_id,
                 summary=summary,
@@ -38,7 +39,7 @@ class AIService:
             raise Exception(f"Error generating interaction summary: {str(e)}")
 
     def _prepare_interaction_text(self, interactions: List[Interaction]) -> str:
-        text_parts = [
+        return "\n".join([
             f"""
             Date: {i.created_date}
             Type: {i.interaction_type}
@@ -49,20 +50,16 @@ class AIService:
             ---
             """
             for i in interactions
-        ]
-        return "\n".join(text_parts)
+        ])
 
     def _generate_summary(self, interaction_text: str) -> str:
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are a helpful assistant that summarizes customer interactions for sales teams. "
-                            "Provide concise, actionable summaries focusing on key discussion points, decisions made, and customer concerns."
-                        )
+                        "content": "You are a helpful assistant that summarizes customer interactions for sales teams. Provide concise, actionable summaries focusing on key discussion points, decisions made, and customer concerns."
                     },
                     {
                         "role": "user",
@@ -72,13 +69,13 @@ class AIService:
                 max_tokens=300,
                 temperature=0.3
             )
-            return response.choices[0].message["content"].strip()
+            return response.choices[0].message.content.strip()
         except Exception as e:
             return f"Error generating summary: {str(e)}"
 
     def _extract_key_topics(self, interaction_text: str) -> List[str]:
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {
@@ -93,8 +90,8 @@ class AIService:
                 max_tokens=100,
                 temperature=0.2
             )
-            topics = response.choices[0].message["content"].strip().split(",")
-            return [topic.strip() for topic in topics if topic.strip()]
+            content = response.choices[0].message.content.strip()
+            return [topic.strip() for topic in content.split(",") if topic.strip()]
         except Exception as e:
             return [f"Error extracting topics: {str(e)}"]
 
@@ -107,15 +104,12 @@ class AIService:
 
     def _predict_next_steps(self, interaction_text: str, summary: str) -> List[str]:
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "Based on customer interactions, suggest 2-4 specific next steps the sales team should take. "
-                            "Be actionable and specific."
-                        )
+                        "content": "Based on customer interactions, suggest 2-4 specific next steps the sales team should take. Be actionable and specific."
                     },
                     {
                         "role": "user",
@@ -130,12 +124,15 @@ class AIService:
                 temperature=0.3
             )
 
-            content = response.choices[0].message["content"].strip()
-            steps = [
-                line.lstrip("-•0123456789. ").strip()
-                for line in content.split("\n")
-                if line.strip() and (line.startswith("-") or line.startswith("•") or line[0].isdigit())
-            ]
+            content = response.choices[0].message.content.strip()
+            lines = content.split("\n")
+            steps = []
+            for line in lines:
+                line = line.strip()
+                if line and (line.startswith("-") or line.startswith("•") or line[0].isdigit()):
+                    step = line.lstrip("-•0123456789. ").strip()
+                    if step:
+                        steps.append(step)
             return steps[:4] if steps else ["Follow up with customer"]
         except Exception as e:
             return [f"Error predicting next steps: {str(e)}"]
